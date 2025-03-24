@@ -1,0 +1,18 @@
+#include <stdio.h>
+
+__global__ void helloGPU(){
+    int index = threadIdx.x;
+    printf("Hello world!!! thread Id: %d \n", index);
+}
+
+int main() {
+    printf("Launch kernel!\n");
+    // Play with the number of threads in a a block!
+    // Put a number greater than 1024 and see what happens!
+    helloGPU<<<1,1025>>>();
+    // Let's check errors!
+    cudaDeviceSynchronize();
+    cudaError_t err = cudaGetLastError();    
+    printf("%s\n",cudaGetErrorString(err));
+    return 0;
+}

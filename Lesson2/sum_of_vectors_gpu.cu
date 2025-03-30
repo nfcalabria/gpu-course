@@ -50,6 +50,7 @@ int main() {
     cudaMemcpy(d_b, h_b, sizeof(int)*N, cudaMemcpyHostToDevice);    
 
     sumVectors<<<1, N>>>(d_a, d_b, d_c, N);
+    // Can try different block sizes and block numbers...
 
     // Overwrite h_c with device results
     cudaMemcpy(h_cgpu, d_c, sizeof(int)*N, cudaMemcpyDeviceToHost);

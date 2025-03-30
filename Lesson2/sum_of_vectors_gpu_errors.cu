@@ -58,7 +58,7 @@ int main() {
     ERRCHK(cudaMemcpy(d_b, h_b, sizeof(int)*N, cudaMemcpyHostToDevice));    
 
     sumVectors<<<1, N>>>(d_a, d_b, d_c, N);
-    ERRCHK(cudaDeviceSynchronize()); // This is how we check the kernels
+    ERRCHK(cudaDeviceSynchronize()); // This is how we check kernels
 
     // Overwrite h_c with device results
     ERRCHK(cudaMemcpy(h_cgpu, d_c, sizeof(int)*N, cudaMemcpyDeviceToHost));

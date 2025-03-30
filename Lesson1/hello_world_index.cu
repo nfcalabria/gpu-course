@@ -7,7 +7,7 @@ __global__ void helloGPU(){
 
 int main() {
     printf("Launch kernel!\n");
-    helloGPU<<<1,10>>>();
+    helloGPU<<<1,1000>>>();
     cudaDeviceSynchronize();
     return 0;
 }

@@ -59,7 +59,7 @@ int main() {
 
     timePoint stop = Clock::now();
     msInterval interval = stop - start;
-    printf("CPU elapsed time: %f\n", interval.count());
+    printf("CPU elapsed time: %f ms \n", interval.count());
 
 
     // print results
@@ -78,7 +78,7 @@ int main() {
 
     stop = Clock::now();
     interval = stop - start;
-    printf("GPU elapsed time: %f\n", interval.count());
+    printf("GPU elapsed time: %f ms \n", interval.count());
 
     // Overwrite h_c with device results
     ERRCHK(cudaMemcpy(h_cgpu, d_c, sizeof(int)*N, cudaMemcpyDeviceToHost));

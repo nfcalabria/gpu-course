@@ -5,7 +5,7 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;
 typedef std::chrono::duration<double, std::milli> msInterval;
 
-#define BLOCKSIZE 64
+#define BLOCKSIZE 16
 
 #define ERRCHK(error) {                                                                         \
     const cudaError_t e = error;                                                                \
@@ -26,7 +26,7 @@ int main() {
     cudaDeviceReset();
 
     //dynamically allocated arrays
-    const int N = 100000000; // Size of arrays
+    const int N = 5; // Size of arrays
 
     int *h_a, *h_b, *h_c, *h_cgpu; // h_ stands for HOST
     int *d_a, *d_b, *d_c; // d_stands for DEVICE
@@ -64,7 +64,7 @@ int main() {
 
     // print results
     for(unsigned int i = 0; i < N; i++) {
-        //printf("idx: %d, %d + %d = %d\n", i, h_a[i], h_b[i], h_c[i]);
+        printf("idx: %d, %d + %d = %d\n", i, h_a[i], h_b[i], h_c[i]);
     }
 
     // Now let's do it on the GPU
@@ -73,7 +73,7 @@ int main() {
     
     start = Clock::now();
 
-    sumVectors<<<N/BLOCKSIZE, BLOCKSIZE>>>(d_a, d_b, d_c, N);
+    sumVectors<<<(N + BLOCKSIZE - 1)/BLOCKSIZE, BLOCKSIZE>>>(d_a, d_b, d_c, N);
     ERRCHK(cudaDeviceSynchronize()); // This is how we check kernels
 
     stop = Clock::now();
@@ -85,7 +85,7 @@ int main() {
 
     // print GPU results
     for(unsigned int i = 0; i < N; i++) {
-        //printf("idx: %d, %d + %d = %d\n", i, h_a[i], h_b[i], h_cgpu[i]);
+        printf("idx: %d, %d + %d = %d\n", i, h_a[i], h_b[i], h_cgpu[i]);
     }
     
     free(h_a);

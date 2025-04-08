@@ -12,7 +12,7 @@ __global__ void reduce0(double *x, int m) {
 }
 
 int main() {
-    int exp = 16;
+    int exp = 20;
     int N = 2 << exp; // 2^exp
     printf("reduce %d elements\n", N);
     double* h_a = new double[N]; // this time we use new, as in C++
@@ -57,6 +57,9 @@ int main() {
         int blocks  = std::max(m/256, 1);
         reduce0<<<blocks, threads>>>(d_a, m);
     }
+
+    // Synchronize before time measurement to be sure that all threads are done
+    cudaDeviceSynchronize();
 
     stop = Clock::now();
     interval = stop - start;    

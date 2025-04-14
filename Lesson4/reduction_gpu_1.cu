@@ -2,19 +2,27 @@
 #include <random>
 #include <chrono>
 
+#define BLOCKSIZE 64
+#define GRIDSIZE 128
+
 typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;
 typedef std::chrono::duration<double, std::milli> msInterval;
 
-__global__ void reduce0(double *x, int m) {
+__global__ void reduce1(double *x, int N) {
     int tid = blockDim.x*blockIdx.x + threadIdx.x;
-    x[tid] += x[tid+m];
+    double tsum = 0.;
+    for(int k=tid; k<N; k += gridDim.x*blockDim.x) {        
+        // store partial sums in first 
+        // BLOCKSIZE * GRIDSIZE element of x
+        tsum += x[k]; 
+    }
+    x[tid] = tsum;    
 }
 
 int main() {
-    cudaDeviceReset();
-    int exp = 20;
-    int N = 2 << exp; // 2^(exp+1)
+    cudaDeviceReset();    
+    int N = 2097152; // Any number, not necessarily a power of 2
     printf("reduce %d elements\n", N);
     double* h_a = new double[N]; // this time we use new, as in C++
 
@@ -52,15 +60,11 @@ int main() {
 
     start = Clock::now();
 
-    //Let's reduce it on the GPU
-    for(int m = N/2; m > 0; m /= 2) {
-        int threads = std::min(256, m);
-        int blocks  = std::max(m/256, 1);
-        reduce0<<<blocks, threads>>>(d_a, m);
-    }
-
+    reduce1<<<GRIDSIZE, BLOCKSIZE>>>(d_a, N);
+    reduce1<<<1, BLOCKSIZE>>>(d_a, BLOCKSIZE*GRIDSIZE);
+    reduce1<<<1,1>>>(d_a, BLOCKSIZE);
     // Synchronize before time measurement to be sure that all threads are done
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize();   
 
     stop = Clock::now();
     interval = stop - start;    

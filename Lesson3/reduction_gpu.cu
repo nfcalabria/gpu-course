@@ -12,6 +12,7 @@ __global__ void reduce0(double *x, int m) {
 }
 
 int main() {
+    cudaDeviceReset();
     int exp = 20;
     int N = 2 << exp; // 2^exp
     printf("reduce %d elements\n", N);

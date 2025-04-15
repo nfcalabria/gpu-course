@@ -2,25 +2,50 @@
 #include <random>
 #include <chrono>
 
+#define BLOCKSIZE 256
+#define GRIDSIZE 512
+
 typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;
 typedef std::chrono::duration<double, std::milli> msInterval;
 
-__global__ void reduce0(double *x, int m) {
+__global__ void reduce2(double *y, double *x, int N) {
+    extern __shared__ double tsum[];
+
+    int id = threadIdx.x;    
     int tid = blockDim.x*blockIdx.x + threadIdx.x;
-    x[tid] += x[tid+m];
+    int stride = gridDim.x*blockDim.x;
+
+    tsum[id] = 0.;
+
+    for(int k=tid; k<N; k+=stride){
+        tsum[id] += x[k];        
+    }
+    __syncthreads();
+
+    // Power of 2 reduction loop
+    for(int k=blockDim.x/2; k>0; k/=2){
+        if(id<k) tsum[id] += tsum[id+k];
+        __syncthreads();
+    }
+
+    // Store one value per thread block
+    if(id==0) y[blockIdx.x] = tsum[0];   
 }
 
 int main() {
-    cudaDeviceReset();
-    int exp = 21;
-    int N = 1 << exp; // 2^(exp)
+    cudaDeviceReset();        
+    int N = 2097152; // Any number, not necessarily a power of 2
     printf("reduce %d elements\n", N);
     double* h_a = new double[N]; // this time we use new, as in C++
 
     // Allocate device data
     double* d_a;
     cudaMalloc((void **) &d_a, sizeof(double)*N);
+
+    // Allocate output vector
+    double* d_out;
+    cudaMalloc((void **) &d_out, sizeof(double)*GRIDSIZE);
 
     // initalize random generator
     std::default_random_engine gen(42);
@@ -52,15 +77,16 @@ int main() {
 
     start = Clock::now();
 
-    //Let's reduce it on the GPU
-    for(int m = N/2; m > 0; m /= 2) {
-        int threads = std::min(256, m);
-        int blocks  = std::max(m/256, 1);
-        reduce0<<<blocks, threads>>>(d_a, m);
-    }
+    reduce2<<<GRIDSIZE, BLOCKSIZE, BLOCKSIZE*sizeof(double)>>>(
+        d_out, d_a, N
+    );
+
+    reduce2<<<1, GRIDSIZE, GRIDSIZE*sizeof(double)>>>(
+        d_a, d_out, GRIDSIZE
+    );   
 
     // Synchronize before time measurement to be sure that all threads are done
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize();   
 
     stop = Clock::now();
     interval = stop - start;    

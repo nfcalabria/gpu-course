@@ -55,7 +55,7 @@ int main() {
     //Let's reduce it on the GPU
     for(int m = N/2; m > 0; m /= 2) {
         int threads = std::min(256, m);
-        int blocks  = std::max(m/256, 1);
+        int blocks  = std::max(m/256, 1); // It works because m is a power of 2
         reduce0<<<blocks, threads>>>(d_a, m);
     }
 

@@ -2,8 +2,8 @@
 #include <random>
 #include <chrono>
 
-#define BLOCKSIZE 256
-#define GRIDSIZE 512
+#define BLOCKSIZE 256 // MUST BE A POWER OF 2
+#define GRIDSIZE 256
 
 typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;

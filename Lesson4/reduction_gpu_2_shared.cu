@@ -37,7 +37,7 @@ __global__ void reduce2(double *y, double *x, int N) {
 
 int main() {
     cudaDeviceReset();        
-    int N = 20971523; // Any number, not necessarily a power of 2
+    int N = 2097152; // Any number, not necessarily a power of 2
     printf("reduce %d elements\n", N);
     double* h_a = new double[N]; // this time we use new, as in C++
 

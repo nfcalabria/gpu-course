@@ -2,7 +2,7 @@
 #include <random>
 #include <chrono>
 
-#define BLOCKSIZE 256
+#define BLOCKSIZE 256 // MUST BE A POWER OF 2!
 #define GRIDSIZE 256
 
 typedef std::chrono::high_resolution_clock Clock;
@@ -24,6 +24,8 @@ __global__ void reduce2(double *y, double *x, int N) {
     __syncthreads();
 
     // Power of 2 reduction loop
+    // INTRA BLOCK REDUCTION!
+    // Requires that BLOCKSIZE is a power of 2
     for(int k=blockDim.x/2; k>0; k/=2){
         if(id<k) tsum[id] += tsum[id+k];
         __syncthreads();
@@ -35,7 +37,7 @@ __global__ void reduce2(double *y, double *x, int N) {
 
 int main() {
     cudaDeviceReset();        
-    int N = 2097152; // Any number, not necessarily a power of 2
+    int N = 20971523; // Any number, not necessarily a power of 2
     printf("reduce %d elements\n", N);
     double* h_a = new double[N]; // this time we use new, as in C++
 

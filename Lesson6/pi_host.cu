@@ -15,7 +15,7 @@ int main() {
     unsigned int seed = rd();
 
     std::default_random_engine gen(seed);
-    std::uniform_real_distribution<double> ddist(0.0, 1.0);
+    std::uniform_real_distribution<float> fdist(0.0, 1.0);
 
     long long pisum = 0;
     timePoint start = Clock::now();
@@ -23,9 +23,9 @@ int main() {
     for(int n = 0; n < passes; n++){
         int subtot = 0;
         for(int k = 0; k < points; k++){
-            double x = ddist(gen);
-            double y = ddist(gen);
-            if(x*x + y*y < 1.0) subtot ++; // inside circle            
+            float x = fdist(gen);
+            float y = fdist(gen);
+            if(x*x + y*y < 1.0f) subtot ++; // inside circle            
         }
         pisum += subtot;
     }    

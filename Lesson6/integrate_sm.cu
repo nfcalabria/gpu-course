@@ -49,8 +49,8 @@ int stencil2D_host(double * a, double * b, int nx, int ny) {
 void showOnScreen(double * out, int nx) {
     auto idx = [&nx] (int y, int x) { return y*nx + x; };
 
-    for(int i = 0; i < 10; i++) {
-        for(int j = 0; j < 10; j++){
+    for(int i = nx-10; i < nx; i++) {
+        for(int j = nx-10; j < nx; j++){
             printf("%f ", out[idx(i, j)]);
         }
         printf("\n");
@@ -96,16 +96,22 @@ int main() {
     printf("CPU content:\n");
     showOnScreen(a, nx);
 
+    const int Nx = 16;
+    const int Ny = 16;
+    const int halo = 1;
+
     dim3 threads = {16,16,1};
     dim3 blocks = {
-        (nx+threads.x-1)/threads.x, (ny+threads.y-1)/threads.y,1
+        (nx+(threads.x-2*halo)-1)/(threads.x-2*halo), 
+        (ny+(threads.y-2*halo)-1)/(threads.y-2*halo),
+        1
     };
 
     start = Clock::now();
 
     for(int k=0;k<iter_gpu/2;k++){
-        stencil2D_sm<16,16><<<blocks, threads>>>(d_a, d_b, nx, ny);
-        stencil2D_sm<16,16><<<blocks, threads>>>(d_b, d_a, nx, ny); // Double buffering
+        stencil2D_sm<Nx,Ny><<<blocks, threads>>>(d_a, d_b, nx, ny);
+        stencil2D_sm<Nx,Ny><<<blocks, threads>>>(d_b, d_a, nx, ny); // Double buffering
     }
     cudaDeviceSynchronize();
 

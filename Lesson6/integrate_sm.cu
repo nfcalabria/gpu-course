@@ -5,17 +5,35 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;
 typedef std::chrono::duration<double, std::milli> msInterval;
 
-__global__ void stencil2D(double *d_a, double *d_b, int nx, int ny) {
+template <int Nx, int Ny> __global__ void stencil2D_sm(double * d_a, double * d_b, int nx, int ny)
+{
+    __shared__ double s[Ny][Nx];
+
     auto idx = [&nx] (int y, int x) { return y*nx + x; };
-    int x = blockIdx.x*blockDim.x + threadIdx.x;
-    int y = blockIdx.y*blockDim.y + threadIdx.y;
+    // tile origins
+    int x0 = ( blockDim.x - 2) * blockIdx.x;
+    int y0 = ( blockDim.y - 2) * blockIdx.y;
+    // Array index
+    int xa = x0 + threadIdx.x;
+    int ya = y0 + threadIdx.y;
+    // Tile index
+    int xs = threadIdx.x;
+    int ys = threadIdx.y;
+    if( xa >= nx || ya >= ny ) return; // return if out of boundaries
 
-    // Return if out of bound
-    if(x < 1 || y < 1 || x >= nx-1 || y >= ny-1) return;
+    s[ys][xs] = d_a[idx(ya, xa)];
+    __syncthreads();
+    // Shared memory is ready
 
-    d_b[idx(y,x)] = 0.25*(d_a[idx(y,x+1)] + d_a[idx(y,x-1)] + d_a[idx(y+1,x)] + d_a[idx(y-1,x)]);
+    // Inside array?
+    if(xa < 1 || ya < 1 || xa >= nx - 1 || ya >= ny - 1) return;
+    // Inside tile?
+    if(xs < 1 || ys < 1 || xs >= Nx - 1 || ys >= Ny - 1) return;
+
+    d_b[idx(ya,xa)] = 0.25*(s[ys][xs+1] + s[ys][xs-1] + s[ys+1][xs] + s[ys-1][xs]);
     
 }
+
 
 int stencil2D_host(double * a, double * b, int nx, int ny) {
     auto idx = [&nx] (int y, int x) { return y*nx + x; };
@@ -40,6 +58,7 @@ void showOnScreen(double * out, int nx) {
 }
 
 int main() {
+    cudaDeviceReset();
     int nx = 1024;
     int ny = 1024;
     int iter_host = 1000;
@@ -85,8 +104,8 @@ int main() {
     start = Clock::now();
 
     for(int k=0;k<iter_gpu/2;k++){
-        stencil2D<<<blocks, threads>>>(d_a, d_b, nx, ny);
-        stencil2D<<<blocks, threads>>>(d_b, d_a, nx, ny); // Double buffering
+        stencil2D_sm<16,16><<<blocks, threads>>>(d_a, d_b, nx, ny);
+        stencil2D_sm<16,16><<<blocks, threads>>>(d_b, d_a, nx, ny); // Double buffering
     }
     cudaDeviceSynchronize();
 

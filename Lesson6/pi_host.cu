@@ -8,8 +8,6 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;
 typedef std::chrono::duration<double, std::milli> msInterval;
 
-
-
 int main() {
     std::random_device rd;
     int points = 1000000;

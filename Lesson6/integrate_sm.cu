@@ -46,10 +46,10 @@ int stencil2D_host(double * a, double * b, int nx, int ny) {
     return 0;
 }
 
-void showOnScreen(double * out, int nx) {
+void showOnScreen(double * out, int nx, int ny) {
     auto idx = [&nx] (int y, int x) { return y*nx + x; };
 
-    for(int i = nx-10; i < nx; i++) {
+    for(int i = ny-10; i < ny; i++) {
         for(int j = nx-10; j < nx; j++){
             printf("%f ", out[idx(i, j)]);
         }
@@ -94,7 +94,7 @@ int main() {
     msInterval interval = stop - start;
     printf("CPU elapsed time: %f ms \n", interval.count());
     printf("CPU content:\n");
-    showOnScreen(a, nx);
+    showOnScreen(a, nx, ny);
 
     const int Nx = 16;
     const int Ny = 16;
@@ -121,7 +121,7 @@ int main() {
     
     cudaMemcpy(a, d_a, sizeof(double)*size, cudaMemcpyDeviceToHost);
     printf("GPU content:\n");
-    showOnScreen(a, nx);
+    showOnScreen(a, nx, ny);
         
     delete[] a;
     delete[] b;

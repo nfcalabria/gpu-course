@@ -32,13 +32,13 @@ int main() {
     // buffers
     float* rdm = new float[points*2];
     float * d_rdm;
-    cudaMalloc(&d_rdm, sizeof(float)*2*points);   
-
-    timePoint start = Clock::now();
+    cudaMalloc(&d_rdm, sizeof(float)*2*points);
 
     curandGenerator_t gen;
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
     curandSetPseudoRandomGeneratorSeed(gen, seed);
+
+    timePoint start = Clock::now();
 
     for(int k = 0; k < passes; k++) {
         curandGenerateUniform(gen, d_rdm, points*2);

@@ -6,16 +6,33 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> timePoint;
 typedef std::chrono::duration<double, std::milli> msInterval;
 
-__global__ void gpumult(double* __restrict A, double* __restrict B, double* __restrict C, int Arow, int Acol, int Bcol)
+template <int TS>__global__ void gpumult_tiled(double* __restrict A, double* __restrict B, double* __restrict C, int Arow, int Acol, int Bcol)
 {
-    int tx = blockIdx.x*blockDim.x + threadIdx.x; // j
-    int ty = blockIdx.y*blockDim.y + threadIdx.y; // i
+    __shared__ double Atile[TS][TS];
+    __shared__ double Btile[TS][TS];
 
-    if(ty >= Arow || tx >= Bcol) return;
-    C[ty*Bcol+tx] = 0.0;
-    for(int k=0; k < Acol; k++){
-        C[ty*Bcol+tx] += A[ty*Bcol+k]*B[k*Bcol+tx];
+    int tx = threadIdx.x; // tile col index j
+    int ty = threadIdx.y; // tile row index i
+    int ocx = blockDim.x*blockIdx.x; // tile x origin in C
+    int ocy = blockDim.y*blockIdx.y; // tile y origin in C
+
+    int ax = tx;
+    int ay = ocy+ty;
+    int bx = ocx+tx;
+    int by = ty;
+
+    double csum = 0.;
+    for(int t=0; t<gridDim.x; t++) {
+        Atile[ty][tx] = A[ay*Acol + ax];
+        Btile[ty][tx] = B[by*Bcol + bx];
+        __syncthreads();
+        for(int k=0; k<TS; k++) csum += Atile[ty][k] * Btile[k][tx];
+        __syncthreads();
+        
+        ax += TS;
+        by += TS;
     }
+    C[ay*Bcol+bx] = csum;
 }
 
 void hostmult(double* A, double* B, double* C, int Arow, int Acol, int Bcol)
@@ -92,13 +109,12 @@ int main(){
 
     // GPU REDUCTION
 
-    uint tilex = 32;
-    uint tiley = 8;
-    dim3 threads = {tilex, tiley, 1};
+    const uint tilex = 32;    
+    dim3 threads = {tilex, tilex, 1};
     dim3 blocks = { (Bcol+threads.x-1)/ threads.x, (Arow+threads.y-1)/threads.y, 1};
 
     start = Clock::now();
-    gpumult<<<blocks,threads>>>(d_A,d_B,d_C,Arow,Acol,Bcol);
+    gpumult_tiled<tilex><<<blocks,threads>>>(d_A,d_B,d_C,Arow,Acol,Bcol);
     cudaDeviceSynchronize();
     stop = Clock::now();
     interval = stop - start;

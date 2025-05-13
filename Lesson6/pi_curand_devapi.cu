@@ -83,8 +83,8 @@ int main() {
     // Synchronize before time measurement to be sure that all threads are done
     cudaDeviceSynchronize();
     
-    double pisum;
-    cudaMemcpy(&pisum, d_tsum, sizeof(double), cudaMemcpyDeviceToHost);
+    float pisum;
+    cudaMemcpy(&pisum, d_tsum, sizeof(float), cudaMemcpyDeviceToHost);
 
     double pi = 4.0 * (double) pisum / ((double) ntot);
     printf("CPU elapsed time: %f ms \n", interval.count());
